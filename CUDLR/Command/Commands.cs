@@ -184,7 +184,7 @@ public static class LogMethods
     [Command("lm", "list log module")]
     public static void ListModule()
     {
-        var keys = LogManager.Instance.LogModuleDic.Keys;
+        var keys = LogManager.Instance.LogModuleNames;
         var names = string.Empty;
         foreach (var key in keys)
         {
@@ -202,7 +202,7 @@ public static class LogMethods
             return;
         }
 
-        var path = (LogManager.Instance.LogModuleDic[args[0]].FilePath);
+        var path = LogManager.Instance.GetModuleLogFilePath(args[0]);
         if (context != null)
         {
             context.Response.AddHeader("Content-disposition", string.Format("attachment; filename={0}", Path.GetFileName(path)));
@@ -218,7 +218,7 @@ public static class LogMethods
     public static void Pull(RequestContext context)
     {
         string module = Uri.UnescapeDataString(context.Request.QueryString.Get("file"));
-        var path = LogManager.Instance.LogModuleDic[module].FilePath;
+        var path = LogManager.Instance.GetModuleLogFilePath(module);
         context.Response.WriteFile(path, "application/octet-stream", true);
         Console.Log("downloading... " + path);
     }

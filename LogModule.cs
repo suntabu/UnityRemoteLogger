@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Suntabu;
-using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Suntabu.Log
 {
@@ -45,7 +46,7 @@ namespace Suntabu.Log
             {
                 Directory.CreateDirectory(mPath);
             }
-            mFilePath = mPath + "/" +moduleName+"_"+ DateTime.Now.ToString("yyyy_MM_dd") + ".log";
+            mFilePath = mPath + "/" +moduleName+"_"+ DateTime.Now.ToString("yyyy_MM_dd") +"_pid"+ Process.GetCurrentProcess().Id+".log";
             //mStreamWriter = File.AppendText(filePath);
         }
 

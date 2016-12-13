@@ -90,7 +90,7 @@ namespace Suntabu.Log
 #endif
                 string stackMessageFormat = Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "():at line " + stackFrame.GetFileLineNumber();
 
-                var content = string.Format(stringformat, "Frame:" + Time.frameCount + ","+DateTime.Now.ToShortTimeString() + ":" + level.ToString(), msg + "\n" + stackMessageFormat);
+                var content = string.Format(stringformat, "Frame:" + Time.frameCount + ","+DateTime.Now.ToShortTimeString() + ":" + level.ToString(), msg + "\t\t" + stackMessageFormat);
 
                 if (LogManager.Instance.Config.IsLogConsoleEnable)
                 {
@@ -101,7 +101,7 @@ namespace Suntabu.Log
                 {
                     try
                     {
-                        File.AppendAllText(GetFilePath(moduleName), content, Encoding.UTF8);
+                        File.AppendAllText(GetFilePath(moduleName), "\n" +content + "\n\r", Encoding.UTF8);
                     }
                     catch (Exception e)
                     {

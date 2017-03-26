@@ -14,336 +14,315 @@ using System.Threading;
 namespace CUDLR
 {
 
-    public class RequestContext
-    {
-        public HttpListenerContext context;
-        public Match match;
-        public bool pass;
-        public string path;
-        public int currentRoute;
+	public class RequestContext
+	{
+		public HttpListenerContext context;
+		public Match match;
+		public bool pass;
+		public string path;
+		public int currentRoute;
 
-        public HttpListenerRequest Request { get { return context.Request; } }
-        public HttpListenerResponse Response { get { return context.Response; } }
+		public HttpListenerRequest Request { get { return context.Request; } }
 
-        public RequestContext(HttpListenerContext ctx)
-        {
-            context = ctx;
-            match = null;
-            pass = false;
-            path = WWW.UnEscapeURL(context.Request.Url.AbsolutePath);
-            if (path == "/")
-                path = "/index.html";
-            currentRoute = 0;
-        }
-    }
+		public HttpListenerResponse Response { get { return context.Response; } }
+
+		public RequestContext (HttpListenerContext ctx)
+		{
+			context = ctx;
+			match = null;
+			pass = false;
+			path = WWW.UnEscapeURL (context.Request.Url.AbsolutePath);
+			if (path == "/")
+				path = "/index.html";
+			currentRoute = 0;
+		}
+	}
 
 
-    public class Server : MonoBehaviour
-    {
+	public class Server : MonoBehaviour
+	{
 
-        [SerializeField]
-        public int Port = 55055;
+		[SerializeField]
+		public int Port = 55055;
 
-        [SerializeField]
-        public bool RegisterLogCallback = false;
+		[SerializeField]
+		public bool RegisterLogCallback = false;
 
-        private static Thread mainThread;
-        private static string fileRoot;
-        private static HttpListener listener;
-        private static List<RouteAttribute> registeredRoutes;
-        private static Queue<RequestContext> mainRequests = new Queue<RequestContext>();
+		private static Thread mainThread;
+		private static string fileRoot;
+		private static HttpListener listener;
+		private static List<RouteAttribute> registeredRoutes;
+		private static Queue<RequestContext> mainRequests = new Queue<RequestContext> ();
 
-        // List of supported files
-        // FIXME add an api to register new types
-        private static Dictionary<string, string> fileTypes = new Dictionary<string, string> {
-              {"js",   "application/javascript"},
-              {"json", "application/json"},
-              {"jpg",  "image/jpeg" },
-              {"jpeg", "image/jpeg"},
-              {"gif",  "image/gif"},
-              {"png",  "image/png"},
-              {"css",  "text/css"},
-              {"htm",  "text/html"},
-              {"html", "text/html"},
-              {"ico",  "image/x-icon"},
-          };
+		// List of supported files
+		// FIXME add an api to register new types
+		private static Dictionary<string, string> fileTypes = new Dictionary<string, string> {
+			{ "js",   "application/javascript" },
+			{ "json", "application/json" },
+			{ "jpg",  "image/jpeg" },
+			{ "jpeg", "image/jpeg" },
+			{ "gif",  "image/gif" },
+			{ "png",  "image/png" },
+			{ "css",  "text/css" },
+			{ "htm",  "text/html" },
+			{ "html", "text/html" },
+			{ "ico",  "image/x-icon" },
+		};
 
-        public virtual void Awake()
-        {
-            mainThread = Thread.CurrentThread;
-            fileRoot = Path.Combine(Application.streamingAssetsPath, "CUDLR");
+		public virtual void Awake ()
+		{
+			mainThread = Thread.CurrentThread;
+			fileRoot = Path.Combine (Application.streamingAssetsPath, "CUDLR");
 
            
-            StartServer(Port);
+			StartServer (Port);
 
-            StartCoroutine(HandleRequests());
-        }
+			StartCoroutine (HandleRequests ());
 
-
-        void StartServer(int port)
-        {
-            try
-            {
-                // Start server
-                Debug.Log("Starting CUDLR Server on port : " + port);
-                listener = new HttpListener();
-                listener.Prefixes.Add("http://*:" + port + "/");
-                listener.Start();
-                listener.BeginGetContext(ListenerCallback, null);
-            }
-            catch (SocketException e)
-            {
-                Debug.Log(e.Message);
-
-                port++;
-                StartServer(port);
-            }
-        }
-
-        public void OnApplicationPause(bool paused)
-        {
-            if (paused)
-            {
-                listener.Stop();
-            }
-            else
-            {
-                listener.Start();
-                listener.BeginGetContext(ListenerCallback, null);
-            }
-        }
-
-        public virtual void OnDestroy()
-        {
-            listener.Close();
-            listener = null;
-        }
-
-        private void RegisterRoutes()
-        {
-            if (registeredRoutes == null)
-            {
-                registeredRoutes = new List<RouteAttribute>();
-
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    foreach (Type type in assembly.GetTypes())
-                    {
-                        // FIXME add support for non-static methods (FindObjectByType?)
-                        foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                        {
-                            RouteAttribute[] attrs = method.GetCustomAttributes(typeof(RouteAttribute), true) as RouteAttribute[];
-                            if (attrs.Length == 0)
-                                continue;
-
-                            RouteAttribute.Callback cbm = Delegate.CreateDelegate(typeof(RouteAttribute.Callback), method, false) as RouteAttribute.Callback;
-                            if (cbm == null)
-                            {
-                                Debug.LogError(string.Format("Method {0}.{1} takes the wrong arguments for a console route.", type, method.Name));
-                                continue;
-                            }
-
-                            // try with a bare action
-                            foreach (RouteAttribute route in attrs)
-                            {
-                                if (route.m_route == null)
-                                {
-                                    Debug.LogError(string.Format("Method {0}.{1} needs a valid route regexp.", type, method.Name));
-                                    continue;
-                                }
-
-                                route.m_callback = cbm;
-                                registeredRoutes.Add(route);
-                            }
-                        }
-                    }
-                }
-                RegisterFileHandlers();
-            }
-        }
-
-        static void FindFileType(RequestContext context, bool download, out string path, out string type)
-        {
-            path = Path.Combine(fileRoot, context.match.Groups[1].Value);
-
-            string ext = Path.GetExtension(path).ToLower().TrimStart(new char[] { '.' });
-            if (download || !fileTypes.TryGetValue(ext, out type))
-                type = "application/octet-stream";
-        }
+			DontDestroyOnLoad (this.gameObject);
+		}
 
 
-        public delegate void FileHandlerDelegate(RequestContext context, bool download);
-        static void WWWFileHandler(RequestContext context, bool download)
-        {
-            string path, type;
-            FindFileType(context, download, out path, out type);
+		void StartServer (int port)
+		{
+			try {
+				// Start server
+				Debug.Log ("Starting CUDLR Server on port : " + port);
+				if (listener == null) {
+					listener = new HttpListener ();
+					listener.Prefixes.Add ("http://*:" + port + "/");	
+				}
+				if (!listener.IsListening) {
+					listener.Start ();
+					listener.BeginGetContext (ListenerCallback, null);	
+				}
 
-            WWW req = new WWW(path);
-            while (!req.isDone)
-            {
-                Thread.Sleep(0);
-            }
+			} catch (SocketException e) {
+				Debug.Log (e.Message);
 
-            if (string.IsNullOrEmpty(req.error))
-            {
-                context.Response.ContentType = type;
-                if (download)
-                    context.Response.AddHeader("Content-disposition", string.Format("attachment; filename={0}", Path.GetFileName(path)));
+				port++;
+				StartServer (port);
+			}
+		}
 
-                context.Response.WriteBytes(req.bytes);
-                return;
-            }
+		public void OnApplicationPause (bool paused)
+		{
+			if (paused) {
+				listener.Stop ();
+			} else {
+				listener.Start ();
+				listener.BeginGetContext (ListenerCallback, null);
+			}
+		}
 
-            if (req.error.StartsWith("Couldn't open file"))
-            {
-                context.pass = true;
-            }
-            else
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                context.Response.StatusDescription = string.Format("Fatal error:\n{0}", req.error);
-            }
-        }
+		public virtual void OnDestroy ()
+		{
+			listener.Close ();
+			listener = null;
+		}
 
-        static void FileHandler(RequestContext context, bool download)
-        {
-            string path, type;
-            FindFileType(context, download, out path, out type);
+		private void RegisterRoutes ()
+		{
+			if (registeredRoutes == null) {
+				registeredRoutes = new List<RouteAttribute> ();
 
-            if (File.Exists(path))
-            {
-                context.Response.WriteFile(path, type, download);
-            }
-            else
-            {
-                context.pass = true;
-            }
-        }
+				foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+					foreach (Type type in assembly.GetTypes()) {
+						// FIXME add support for non-static methods (FindObjectByType?)
+						foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Static)) {
+							RouteAttribute[] attrs = method.GetCustomAttributes (typeof(RouteAttribute), true) as RouteAttribute[];
+							if (attrs.Length == 0)
+								continue;
 
-        static void RegisterFileHandlers()
-        {
-            string pattern = string.Format("({0})", string.Join("|", fileTypes.Select(x => x.Key).ToArray()));
-            RouteAttribute downloadRoute = new RouteAttribute(string.Format(@"^/download/(.*\.{0})$", pattern));
-            RouteAttribute fileRoute = new RouteAttribute(string.Format(@"^/(.*\.{0})$", pattern));
+							RouteAttribute.Callback cbm = Delegate.CreateDelegate (typeof(RouteAttribute.Callback), method, false) as RouteAttribute.Callback;
+							if (cbm == null) {
+								Debug.LogError (string.Format ("Method {0}.{1} takes the wrong arguments for a console route.", type, method.Name));
+								continue;
+							}
 
-            bool needs_www = fileRoot.Contains("://");
-            downloadRoute.m_runOnMainThread = needs_www;
-            fileRoute.m_runOnMainThread = needs_www;
+							// try with a bare action
+							foreach (RouteAttribute route in attrs) {
+								if (route.m_route == null) {
+									Debug.LogError (string.Format ("Method {0}.{1} needs a valid route regexp.", type, method.Name));
+									continue;
+								}
 
-            FileHandlerDelegate callback = FileHandler;
-            if (needs_www)
-                callback = WWWFileHandler;
+								route.m_callback = cbm;
+								registeredRoutes.Add (route);
+							}
+						}
+					}
+				}
+				RegisterFileHandlers ();
+			}
+		}
 
-            downloadRoute.m_callback = delegate (RequestContext context) { callback(context, true); };
-            fileRoute.m_callback = delegate (RequestContext context) { callback(context, false); };
+		static void FindFileType (RequestContext context, bool download, out string path, out string type)
+		{
+			path = Path.Combine (fileRoot, context.match.Groups [1].Value);
 
-            registeredRoutes.Add(downloadRoute);
-            registeredRoutes.Add(fileRoute);
-        }
+			string ext = Path.GetExtension (path).ToLower ().TrimStart (new char[] { '.' });
+			if (download || !fileTypes.TryGetValue (ext, out type))
+				type = "application/octet-stream";
+		}
 
-        void OnEnable()
-        {
-            if (RegisterLogCallback)
-            {
-                // Capture Console Logs
-                Application.RegisterLogCallback(Console.LogCallback);
-            }
-        }
 
-        void OnDisable()
-        {
-            if (RegisterLogCallback)
-            {
-                Application.RegisterLogCallback(null);
-            }
-        }
+		public delegate void FileHandlerDelegate (RequestContext context, bool download);
 
-        void Update()
-        {
-            Console.Update();
-        }
+		static void WWWFileHandler (RequestContext context, bool download)
+		{
+			string path, type;
+			FindFileType (context, download, out path, out type);
 
-        void ListenerCallback(IAsyncResult result)
-        {
-            RequestContext context = new RequestContext(listener.EndGetContext(result));
+			WWW req = new WWW (path);
+			while (!req.isDone) {
+				Thread.Sleep (0);
+			}
 
-            HandleRequest(context);
+			if (string.IsNullOrEmpty (req.error)) {
+				context.Response.ContentType = type;
+				if (download)
+					context.Response.AddHeader ("Content-disposition", string.Format ("attachment; filename={0}", Path.GetFileName (path)));
 
-            if (listener.IsListening)
-            {
-                listener.BeginGetContext(ListenerCallback, null);
-            }
-        }
+				context.Response.WriteBytes (req.bytes);
+				return;
+			}
 
-        void HandleRequest(RequestContext context)
-        {
-            RegisterRoutes();
+			if (req.error.StartsWith ("Couldn't open file")) {
+				context.pass = true;
+			} else {
+				context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+				context.Response.StatusDescription = string.Format ("Fatal error:\n{0}", req.error);
+			}
+		}
 
-            try
-            {
-                bool handled = false;
+		static void FileHandler (RequestContext context, bool download)
+		{
+			string path, type;
+			FindFileType (context, download, out path, out type);
 
-                for (; context.currentRoute < registeredRoutes.Count; ++context.currentRoute)
-                {
-                    RouteAttribute route = registeredRoutes[context.currentRoute];
-                    Match match = route.m_route.Match(context.path);
-                    if (!match.Success)
-                        continue;
+			if (File.Exists (path)) {
+				context.Response.WriteFile (path, type, download);
+			} else {
+				context.pass = true;
+			}
+		}
 
-                    if (!route.m_methods.IsMatch(context.Request.HttpMethod))
-                        continue;
+		static void RegisterFileHandlers ()
+		{
+			string pattern = string.Format ("({0})", string.Join ("|", fileTypes.Select (x => x.Key).ToArray ()));
+			RouteAttribute downloadRoute = new RouteAttribute (string.Format (@"^/download/(.*\.{0})$", pattern));
+			RouteAttribute fileRoute = new RouteAttribute (string.Format (@"^/(.*\.{0})$", pattern));
 
-                    // Upgrade to main thread if necessary
-                    if (route.m_runOnMainThread && Thread.CurrentThread != mainThread)
-                    {
-                        lock (mainRequests)
-                        {
-                            mainRequests.Enqueue(context);
-                        }
-                        return;
-                    }
+			bool needs_www = fileRoot.Contains ("://");
+			downloadRoute.m_runOnMainThread = needs_www;
+			fileRoute.m_runOnMainThread = needs_www;
 
-                    context.match = match;
-                    route.m_callback(context);
-                    handled = !context.pass;
-                    if (handled)
-                        break;
-                }
+			FileHandlerDelegate callback = FileHandler;
+			if (needs_www)
+				callback = WWWFileHandler;
 
-                if (!handled)
-                {
-                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                    context.Response.StatusDescription = "Not Found";
-                }
-            }
-            catch (Exception exception)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                context.Response.StatusDescription = string.Format("Fatal error:\n{0}", exception);
+			downloadRoute.m_callback = delegate (RequestContext context) {
+				callback (context, true);
+			};
+			fileRoute.m_callback = delegate (RequestContext context) {
+				callback (context, false);
+			};
 
-                Debug.LogException(exception);
-            }
+			registeredRoutes.Add (downloadRoute);
+			registeredRoutes.Add (fileRoute);
+		}
 
-            context.Response.OutputStream.Close();
-        }
+		void OnEnable ()
+		{
+			if (RegisterLogCallback) {
+				// Capture Console Logs
+				Application.RegisterLogCallback (Console.LogCallback);
+			}
+		}
 
-        IEnumerator HandleRequests()
-        {
-            while (true)
-            {
-                while (mainRequests.Count == 0)
-                {
-                    yield return new WaitForEndOfFrame();
-                }
+		void OnDisable ()
+		{
+			if (RegisterLogCallback) {
+				Application.RegisterLogCallback (null);
+			}
+		}
 
-                RequestContext context = null;
-                lock (mainRequests)
-                {
-                    context = mainRequests.Dequeue();
-                }
+		void Update ()
+		{
+			Console.Update ();
+		}
 
-                HandleRequest(context);
-            }
-        }
-    }
+		void ListenerCallback (IAsyncResult result)
+		{
+			RequestContext context = new RequestContext (listener.EndGetContext (result));
+
+			HandleRequest (context);
+
+			if (listener.IsListening) {
+				listener.BeginGetContext (ListenerCallback, null);
+			}
+		}
+
+		void HandleRequest (RequestContext context)
+		{
+			RegisterRoutes ();
+
+			try {
+				bool handled = false;
+
+				for (; context.currentRoute < registeredRoutes.Count; ++context.currentRoute) {
+					RouteAttribute route = registeredRoutes [context.currentRoute];
+					Match match = route.m_route.Match (context.path);
+					if (!match.Success)
+						continue;
+
+					if (!route.m_methods.IsMatch (context.Request.HttpMethod))
+						continue;
+
+					// Upgrade to main thread if necessary
+					if (route.m_runOnMainThread && Thread.CurrentThread != mainThread) {
+						lock (mainRequests) {
+							mainRequests.Enqueue (context);
+						}
+						return;
+					}
+
+					context.match = match;
+					route.m_callback (context);
+					handled = !context.pass;
+					if (handled)
+						break;
+				}
+
+				if (!handled) {
+					context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+					context.Response.StatusDescription = "Not Found";
+				}
+			} catch (Exception exception) {
+				context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+				context.Response.StatusDescription = string.Format ("Fatal error:\n{0}", exception);
+
+				Debug.LogException (exception);
+			}
+
+			context.Response.OutputStream.Close ();
+		}
+
+		IEnumerator HandleRequests ()
+		{
+			while (true) {
+				while (mainRequests.Count == 0) {
+					yield return new WaitForEndOfFrame ();
+				}
+
+				RequestContext context = null;
+				lock (mainRequests) {
+					context = mainRequests.Dequeue ();
+				}
+
+				HandleRequest (context);
+			}
+		}
+	}
 }

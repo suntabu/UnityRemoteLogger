@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+
 #if UNITY_EDITOR
 using System.Reflection;
 using UnityEditor;
@@ -21,90 +22,88 @@ using Debug = UnityEngine.Debug;
 
 namespace Utility
 {
-    public class LogUtility
-    {
-        public enum LogLevel : byte
-        {
-            None = 0,
-            Exception = 1,
-            Error = 2,
-            Warning = 3,
-            Info = 4,
-        }
+	public class LogUtility
+	{
+		public enum LogLevel : byte
+		{
+			None = 0,
+			Exception = 1,
+			Error = 2,
+			Warning = 3,
+			Info = 4,
+		}
 
-        public static LogLevel logLevel = LogLevel.Info;
-        public static string infoColor = "#909090";
-        public static string warningColor = "orange";
-        public static string errorColor = "red";
+		public static LogLevel logLevel = LogLevel.Info;
+		public static string infoColor = "#909090";
+		public static string warningColor = "orange";
+		public static string errorColor = "red";
 
-        public static void LogBreak(object message, UnityEngine.Object sender = null)
-        {
-            LogInfo(message, sender);
-            Debug.Break();
-        }
+		public static void LogBreak (object message, UnityEngine.Object sender = null)
+		{
+			LogInfo (message, sender);
+			Debug.Break ();
+		}
 
-        public static void LogFormat(string format, UnityEngine.Object sender, params object[] message)
-        {
-            if (logLevel >= LogLevel.Info)
-                LogLevelFormat(LogLevel.Info, string.Format(format, message), sender);
-        }
+		public static void LogFormat (string format, UnityEngine.Object sender, params object[] message)
+		{
+			if (logLevel >= LogLevel.Info)
+				LogLevelFormat (LogLevel.Info, string.Format (format, message), sender);
+		}
 
-        public static void LogFormat(string format, params object[] message)
-        {
-            if (logLevel >= LogLevel.Info)
-                LogLevelFormat(LogLevel.Info, string.Format(format, message), null);
-        }
+		public static void LogFormat (string format, params object[] message)
+		{
+			if (logLevel >= LogLevel.Info)
+				LogLevelFormat (LogLevel.Info, string.Format (format, message), null);
+		}
 
-        public static void LogInfo(object message, UnityEngine.Object sender = null)
-        {
-            if (logLevel >= LogLevel.Info)
-                LogLevelFormat(LogLevel.Info, message, sender);
-        }
+		public static void LogInfo (object message, UnityEngine.Object sender = null)
+		{
+			if (logLevel >= LogLevel.Info)
+				LogLevelFormat (LogLevel.Info, message, sender);
+		}
 
-        public static void LogWarning(object message, UnityEngine.Object sender = null)
-        {
-            if (logLevel >= LogLevel.Warning)
-                LogLevelFormat(LogLevel.Warning, message, sender);
-        }
+		public static void LogWarning (object message, UnityEngine.Object sender = null)
+		{
+			if (logLevel >= LogLevel.Warning)
+				LogLevelFormat (LogLevel.Warning, message, sender);
+		}
 
-        public static void LogError(object message, UnityEngine.Object sender = null)
-        {
-            if (logLevel >= LogLevel.Error)
-            {
-                LogLevelFormat(LogLevel.Error, message, sender);
-            }
-        }
+		public static void LogError (object message, UnityEngine.Object sender = null)
+		{
+			if (logLevel >= LogLevel.Error) {
+				LogLevelFormat (LogLevel.Error, message, sender);
+			}
+		}
 
-        public static void LogException(Exception exption, UnityEngine.Object sender = null)
-        {
-            if (logLevel >= LogLevel.Exception)
-            {
-                LogLevelFormat(LogLevel.Exception, exption, sender);
-            }
-        }
+		public static void LogException (Exception exption, UnityEngine.Object sender = null)
+		{
+			if (logLevel >= LogLevel.Exception) {
+				LogLevelFormat (LogLevel.Exception, exption, sender);
+			}
+		}
 
-        private static void LogLevelFormat(LogLevel level, object message, UnityEngine.Object sender)
-        {
-            string levelFormat = level.ToString().ToUpper();
-            StackTrace stackTrace = new StackTrace(true);
-            var stackFrame = stackTrace.GetFrame(2);
-#if UNITY_EDITOR
+		private static void LogLevelFormat (LogLevel level, object message, UnityEngine.Object sender)
+		{
+			string levelFormat = level.ToString ().ToUpper ();
+			StackTrace stackTrace = new StackTrace (true);
+			var stackFrame = stackTrace.GetFrame (2);
+#if UNITY_EDITOR1
             s_LogStackFrameList.Add(stackFrame);
 #endif
-            string stackMessageFormat = Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "():at line " + stackFrame.GetFileLineNumber();
-            string timeFormat = "Frame:" + Time.frameCount + "," + DateTime.Now.Millisecond + "ms";
-            string objectName = string.Empty;
-            string colorFormat = infoColor;
-            if (level == LogLevel.Warning)
-                colorFormat = warningColor;
-            else if (level == LogLevel.Error)
-                colorFormat = errorColor;
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("<color={3}>[{0}][{4}][{1}]{2}</color>", levelFormat, timeFormat, message, colorFormat, stackMessageFormat);
-            Debug.Log(sb, sender);
-        }
+			string stackMessageFormat = Path.GetFileName (stackFrame.GetFileName ()) + ":" + stackFrame.GetMethod ().Name + "():at line " + stackFrame.GetFileLineNumber ();
+			string timeFormat = "Frame:" + Time.frameCount + "," + DateTime.Now.Millisecond + "ms";
+			string objectName = string.Empty;
+			string colorFormat = infoColor;
+			if (level == LogLevel.Warning)
+				colorFormat = warningColor;
+			else if (level == LogLevel.Error)
+				colorFormat = errorColor;
+			StringBuilder sb = new StringBuilder ();
+			sb.AppendFormat ("<color={3}>[{0}][{4}][{1}]{2}</color>", levelFormat, timeFormat, message, colorFormat, stackMessageFormat);
+			Debug.Log (sb, sender);
+		}
 
-#if UNITY_EDITOR
+		#if UNITY_EDITOR1
         private static int s_InstanceID;
         private static int s_Line = 104;
         private static List<StackFrame> s_LogStackFrameList = new List<StackFrame>();
@@ -196,6 +195,6 @@ namespace Utility
             return false;
         }
 #endif
-    }
+	}
 
 }

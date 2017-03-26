@@ -85,7 +85,7 @@ namespace Suntabu.Log
 
                 StackTrace stackTrace = new StackTrace(true);
                 var stackFrame = stackTrace.GetFrame(3);
-#if UNITY_EDITOR
+#if UNITY_EDITOR1
                 s_LogStackFrameList.Add(stackFrame);
 #endif
                 string stackMessageFormat = Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "():at line " + stackFrame.GetFileLineNumber();
@@ -117,7 +117,7 @@ namespace Suntabu.Log
 
 
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR1
         private static int s_InstanceID;
         private static int s_Line = 97;
         private static List<StackFrame> s_LogStackFrameList = new List<StackFrame>();

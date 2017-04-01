@@ -20,22 +20,22 @@ namespace Suntabu.Log
 	{
 		public static void d (object msg)
 		{
-			LogManager.Instance.Log ("-app-", msg);
+			Log ("-app-", msg);
 		}
 
 		public static void d (string module, object msg)
 		{
-			LogManager.Instance.Log (module, msg);
+			Log (module, msg);
 		}
 
 		public static void e (object msg)
 		{
-			LogManager.Instance.Log ("-app-", msg, Loglevels.Error);
+			Log ("-app-", msg, Loglevels.Error);
 		}
 
 		public static void e (string module, object msg)
 		{
-			LogManager.Instance.Log (module, msg, Loglevels.Error);
+			Log (module, msg, Loglevels.Error);
 		}
 
 		public static void Log (string module, object msg, Loglevels level = Loglevels.All)
@@ -52,7 +52,7 @@ namespace Suntabu.Log
 			string objectName = string.Empty;
            
 			StringBuilder sb = new StringBuilder ();
-			sb.AppendFormat ("[{0}][{4}][{1}] <color={3}>{2}</color>", level.ToString (), timeFormat, msg, "#2BD897", stackMessageFormat);
+			sb.AppendFormat ("[{0}][{4}][{1}] <color={3}>{2}</color>", level.ToString (), timeFormat, msg, "#B803D0", stackMessageFormat);
 			LogManager.Instance.Log (module, sb.ToString ());
 		}
 

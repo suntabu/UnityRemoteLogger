@@ -47,12 +47,12 @@ namespace Suntabu.Log
 #if UNITY_EDITOR
 			s_LogStackFrameList.Add (stackFrame);
 #endif
-			string stackMessageFormat = Path.GetFileName (stackFrame.GetFileName ()) + ":" + stackFrame.GetMethod ().Name + "():at line " + stackFrame.GetFileLineNumber ();
-			string timeFormat = "Frame:" + Time.frameCount + "," + DateTime.Now.Millisecond + "ms";
+			string stackMessageFormat =string.Format("<color={1}>{0}</color>", Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "():at line " + stackFrame.GetFileLineNumber(),"#990032") ;
+			string timeFormat = Time.frameCount + "F , " + DateTime.Now.Millisecond + "ms";
 			string objectName = string.Empty;
            
 			StringBuilder sb = new StringBuilder ();
-			sb.AppendFormat ("[{0}][{4}][{1}] <color={3}>{2}</color>", level.ToString (), timeFormat, msg, "#B803D0", stackMessageFormat);
+			sb.AppendFormat ("[ {0} ][ {3} ] <color={2}>{1}</color>", timeFormat, msg, "#B803D0", stackMessageFormat);
 			LogManager.Instance.Log (module, sb.ToString ());
 		}
 
@@ -76,13 +76,33 @@ namespace Suntabu.Log
 		private static FieldInfo s_LogEntryLine;
 		private static FieldInfo s_LogEntryCondition;
 
+        private static string m_LogScriptPath;
+        public static void SetLogScriptPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                UnityEngine.Debug.LogError("The given path which leads to log script file is null or empty");
+            }
+            m_LogScriptPath = path;
+
+            var scriptAsset = AssetDatabase.LoadAssetAtPath<MonoScript>(m_LogScriptPath);
+            if (scriptAsset == null)
+            {
+                UnityEngine.Debug.LogError("The given path :" + m_LogScriptPath + "  can not be found!");
+            }
+            s_InstanceID = scriptAsset.GetInstanceID();
+
+            s_LogStackFrameList.Clear();
+
+            GetConsoleWindowListView();
+        }
+
 		static SunLog ()
 		{
-			s_InstanceID = AssetDatabase.LoadAssetAtPath<MonoScript> ("Assets/_Game/Scripts/Utils/Log.cs").GetInstanceID ();
-			s_LogStackFrameList.Clear ();
-
-			GetConsoleWindowListView ();
+            
 		}
+
+
 
 		private static void GetConsoleWindowListView ()
 		{

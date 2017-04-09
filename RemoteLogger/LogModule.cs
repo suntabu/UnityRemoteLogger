@@ -78,21 +78,40 @@ namespace Suntabu.Log
 						break;
 				}
 
-				var content = string.Format (stringformat, level,  msg);
+                StackTrace stackTrace = new StackTrace(true);
+                // FIXME call stack count!
+                var stackFrame = stackTrace.GetFrame(2);
+#if UNITY_EDITOR
+                SunLog.AddStackFrame(stackFrame);
+#endif
+                string stackInfo = Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "() @ L" + stackFrame.GetFileLineNumber();
+                string timeInfo = Time.frameCount + "F , " + DateTime.Now.Millisecond + "ms";
+                string stackInfoColor = "#990032";
+                string messageColor = "#B803D0";
 
-				if (LogManager.Instance.Config.IsLogConsoleEnable) {
-					action (content);
-				}
+                var content = string.Empty;
+                string logContent = string.Format("[{0}][{1}] -> {2}", timeInfo,  stackInfo,  msg);
+                content = string.Format(stringformat, level, logContent);
 
-				if (LogManager.Instance.Config.IsLogFileEnable) {
-					try {
+
+                if (LogManager.Instance.Config.IsLogFileEnable) {
+                    CUDLR.Console.Log(content);
+                    try {
 						File.AppendAllText (GetFilePath (moduleName), "\n" + content + "\n\r", Encoding.UTF8);
 					} catch (Exception e) {
 						Debug.Log (string.Format ("Write to log failed :{0}\t EXCEPTION：{1}", mFilePath, e.Message));
 					}
 				}
 
-			}
+#if UNITY_EDITOR
+                string editorContent = string.Format("[{0}][<color={1}>{2}</color>] --> <color={3}>{4}</color>", timeInfo, stackInfoColor, stackInfo, messageColor, msg);
+                content = string.Format(stringformat, level, editorContent);
+#endif
+                if (LogManager.Instance.Config.IsLogConsoleEnable)
+                {
+                    action(content);
+                }
+            }
 
 
 		}

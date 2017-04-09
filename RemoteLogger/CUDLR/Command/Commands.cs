@@ -204,7 +204,15 @@ public static class LogMethods
 	{
 		string module = Uri.UnescapeDataString (context.Request.QueryString.Get ("file"));
 		var path = LogManager.Instance.GetModuleLogFilePath (module);
-		context.Response.WriteFile (path, "application/octet-stream", true);
-		Console.Log ("downloading... " + path);
+        try
+        {
+            context.Response.WriteFile(path, "application/octet-stream", true);
+            Console.Log("downloading... " + path);
+        }
+        catch(Exception e)
+        {
+            Console.Log("\tERROR:" + e.Message + "\n" + e.StackTrace);
+        }
+		
 	}
 }

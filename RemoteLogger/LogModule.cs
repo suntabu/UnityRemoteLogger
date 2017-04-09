@@ -82,6 +82,7 @@ namespace Suntabu.Log
 
 				if (LogManager.Instance.Config.IsLogConsoleEnable) {
 					action (content);
+                    CUDLR.Console.Log(content);
 				}
 
 				if (LogManager.Instance.Config.IsLogFileEnable) {

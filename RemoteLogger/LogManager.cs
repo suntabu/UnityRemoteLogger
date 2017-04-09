@@ -38,23 +38,9 @@ namespace Suntabu.Log
             Log(module, msg, Loglevels.Error);
         }
 
-        public static void Log(string module, object msg, Loglevels level = Loglevels.All)
+        private static void Log(string module, object msg, Loglevels level = Loglevels.All)
         {
-
-
-            StackTrace stackTrace = new StackTrace(true);
-            // FIXME call stack count!
-            var stackFrame = stackTrace.GetFrame(2);
-#if UNITY_EDITOR
-            s_LogStackFrameList.Add(stackFrame);
-#endif
-            string stackMessageFormat = string.Format("<color={1}>{0}</color>", Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "() @ L" + stackFrame.GetFileLineNumber(), "#990032");
-            string timeFormat = Time.frameCount + "F , " + DateTime.Now.Millisecond + "ms";
-            string objectName = string.Empty;
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("[ {0} ][ {3} ] <color={2}>{1}</color>", timeFormat, msg, "#B803D0", stackMessageFormat);
-            LogManager.Instance.Log(module, sb.ToString());
+            LogManager.Instance.Log(module, msg,level);
         }
 
 
@@ -107,7 +93,10 @@ namespace Suntabu.Log
             Init(@"Assets\RemoteLogger\LogModule.cs");
         }
 
-
+        public static void AddStackFrame(StackFrame stackFrame)
+        {
+            s_LogStackFrameList.Add(stackFrame);
+        }
 
         private static void GetConsoleWindowListView()
         {

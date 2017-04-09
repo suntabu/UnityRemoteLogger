@@ -48,7 +48,7 @@ namespace Suntabu.Log
 #if UNITY_EDITOR
             s_LogStackFrameList.Add(stackFrame);
 #endif
-            string stackMessageFormat = string.Format("<color={1}>{0}</color>", Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "():at line " + stackFrame.GetFileLineNumber(), "#990032");
+            string stackMessageFormat = string.Format("<color={1}>{0}</color>", Path.GetFileName(stackFrame.GetFileName()) + ":" + stackFrame.GetMethod().Name + "() @ L" + stackFrame.GetFileLineNumber(), "#990032");
             string timeFormat = Time.frameCount + "F , " + DateTime.Now.Millisecond + "ms";
             string objectName = string.Empty;
 
